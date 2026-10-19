@@ -1,0 +1,115 @@
+     1                                  ; ── Constantes ───────────────────────────────────────────────────────────
+     2                                  CR              EQU  0Dh         
+     3                                  LF              EQU  0Ah         
+     4                                  TERMINADOR      EQU  24h         
+     5                                  ITERACIONES     EQU  5           
+     6                                  
+     7                                  ; ── Segmento de Pila (Obligatorio para .EXE) ─────────────────────────────
+     8                                  segment stack stack
+     9 00000000 <res 100h>                  resb 256        
+    10                                  
+    11                                  ; ── Segmento de Datos (Inicializados) ────────────────────────────────────
+    12                                  segment data
+    13 00000000 3D3D3D204C61626F72-         bienvenida  db "=== Laboratorio NASM - Unidad 4 ===", CR, LF, TERMINADOR
+    13 00000009 61746F72696F204E41-
+    13 00000012 534D202D20556E6964-
+    13 0000001B 61642034203D3D3D0D-
+    13 00000024 0A24               
+    14 00000026 2D2D2D2D2D2D2D2D2D-         separador   db "----------------------------------------", CR, LF, TERMINADOR
+    14 0000002F 2D2D2D2D2D2D2D2D2D-
+    14 00000038 2D2D2D2D2D2D2D2D2D-
+    14 00000041 2D2D2D2D2D2D2D2D2D-
+    14 0000004A 2D2D2D2D0D0A24     
+    15 00000051 5661726961626C6520-         etiqueta_a  db "Variable A (word):  ", TERMINADOR
+    15 0000005A 412028776F7264293A-
+    15 00000063 202024             
+    16 00000066 5661726961626C6520-         etiqueta_b  db "Variable B (dword): ", TERMINADOR
+    16 0000006F 42202864776F726429-
+    16 00000078 3A2024             
+    17 0000007B 50726F6772616D6120-         fin_msg     db "Programa finalizado correctamente.", CR, LF, TERMINADOR
+    17 00000084 66696E616C697A6164-
+    17 0000008D 6F20636F7272656374-
+    17 00000096 616D656E74652E0D0A-
+    17 0000009F 24                 
+    18                                  
+    19 000000A0 2A                          var_byte    db  42           ; 1 byte con valor 42
+    20 000000A1 3412                        var_word    dw  1234h        ; 2 bytes con valor 0x1234
+    21 000000A3 EFBEADDE                    var_dword   dd  0DEADBEEFh   ; 4 bytes
+    22                                      
+    23                                      ; NOTA: Cambié los valores a un solo dígito (1 al 5) para que 
+    24                                      ; la conversión ASCII (add al, 30h) funcione y se vean bien en pantalla.
+    25 000000A7 0102030405                  tabla_bytes db  1, 2, 3, 4, 5  
+    26                                  
+    27                                  ; ── Segmento de Datos No Inicializados ───────────────────────────────────
+    28                                  segment bss
+    29 00000000 <res 50h>                   buffer      resb 80      
+    30 00000050 ????                        resultado   resw 1       
+    31                                  
+    32                                  ; ── Segmento de Código ───────────────────────────────────────────────────
+    33                                  segment code
+    34                                  ..start:
+    35                                      ; 1. Inicializar el segmento de datos
+    36 00000000 B8[ssss]                    mov  ax, data
+    37 00000003 8ED8                        mov  ds, ax
+    38                                  
+    39                                      ; 2. Imprimir bienvenida y separador (Función 09h)
+    40 00000005 B409                        mov  ah, 09h
+    41 00000007 BA[0000]                    mov  dx, bienvenida
+    42 0000000A CD21                        int  21h
+    43                                  
+    44 0000000C BA[2600]                    mov  dx, separador
+    45 0000000F CD21                        int  21h
+    46                                  
+    47                                      ; 3. Imprimir etiqueta A
+    48 00000011 B409                        mov  ah, 09h
+    49 00000013 BA[5100]                    mov  dx, etiqueta_a
+    50 00000016 CD21                        int  21h
+    51                                  
+    52                                      ; === Función 02h: imprimir un carácter ===
+    53                                      ; Imprimir el valor de var_byte convertido (Solo para demo)
+    54 00000018 A0[A000]                    mov  al, [var_byte]      ; AL = 42
+    55 0000001B 0430                        add  al, 30h             ; 42 + 48 = 90 ("Z" en ASCII)
+    56 0000001D B402                        mov  ah, 02h             
+    57 0000001F 88C2                        mov  dl, al
+    58 00000021 CD21                        int  21h
+    59                                  
+    60                                      ; Imprimir nueva línea manual con Función 02h
+    61 00000023 B402                        mov  ah, 02h
+    62 00000025 B20D                        mov  dl, CR
+    63 00000027 CD21                        int  21h
+    64 00000029 B20A                        mov  dl, LF
+    65 0000002B CD21                        int  21h
+    66                                  
+    67                                      ; === Recorrer tabla de bytes e imprimir cada elemento ===
+    68 0000002D 8D36[A700]                  lea  si, tabla_bytes     ; SI apunta al inicio de la tabla
+    69 00000031 B90500                      mov  cx, ITERACIONES     ; CX = 5 iteraciones (Controla el loop)
+    70                                  
+    71                                  imprimir_tabla:
+    72 00000034 8A04                        mov  al, [si]            ; AL = byte actual de la tabla
+    73 00000036 0430                        add  al, 30h             ; Conversión a ASCII (Válida para 0-9)
+    74 00000038 B402                        mov  ah, 02h
+    75 0000003A 88C2                        mov  dl, al
+    76 0000003C CD21                        int  21h
+    77                                  
+    78 0000003E B402                        mov  ah, 02h             ; Imprimir espacio entre elementos
+    79 00000040 B220                        mov  dl, 20h             ; 20h es el código ASCII del espacio
+    80 00000042 CD21                        int  21h
+    81                                  
+    82 00000044 46                          inc  si                  ; Avanzar al siguiente byte en la memoria
+    83 00000045 E2ED                        loop imprimir_tabla      ; Resta 1 a CX; si CX no es 0, salta a imprimir_tabla
+    84                                  
+    85                                      ; Imprimir nueva línea después de la tabla
+    86 00000047 B402                        mov  ah, 02h
+    87 00000049 B20D                        mov  dl, CR
+    88 0000004B CD21                        int  21h
+    89 0000004D B20A                        mov  dl, LF
+    90 0000004F CD21                        int  21h
+    91                                  
+    92                                      ; 4. Imprimir mensaje final
+    93 00000051 B409                        mov  ah, 09h
+    94 00000053 BA[7B00]                    mov  dx, fin_msg
+    95 00000056 CD21                        int  21h
+    96                                  
+    97                                      ; 5. Terminar programa y salir a DOS
+    98 00000058 B8004C                      mov  ax, 4C00h           
+    99 0000005B CD21                        int  21h
